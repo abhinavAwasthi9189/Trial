@@ -4,7 +4,7 @@ use serde_json::{json};
 use std::io::Write;
 use std::fs::File;
 
-#[derive(Deserialize,Serialize)]
+#[derive(Debug,Deserialize,Serialize)]
 struct Val1{
     name:String,
     count:Vec<u32>
@@ -18,6 +18,15 @@ fn writeit(json_str : &str, usr : &str) -> std::io::Result<()>{
     let mut fle = File::create(user)?;
     fle.write_all(json_str.as_bytes())?;
     Ok(())
+}
+
+fn readit(usr:&str) -> Result<Val1,Box<dyn std::error::Error>>{
+    let mut user = String::from(usr);
+    user.push_str(".json");
+
+    let data = std::fs::read_to_string(user)?;
+    let json:Val1 = serde_json::from_str(&data)?;
+    Ok(json)
 }
 
 fn main() {
@@ -55,7 +64,7 @@ fn main() {
 
     let string = Val1 {
         name : "freya".to_owned(),
-        count: vec!(17),
+        count: vec!(17,12,13),
         };
 
     let j = serde_json::to_string(&string).unwrap();
@@ -68,4 +77,8 @@ fn main() {
         Ok(()) =>{println!("success");}
         Err(e) => {println!("Error writing to file: {}", e);}
     }
+
+    let end_value = readit(&usr).expect("well it didn't work. same as ussual");
+    
+    println!("values are {:?}",end_value);
 }
