@@ -1,11 +1,23 @@
 mod modules;
 use serde::{Deserialize,Serialize};
-use serde_json::{Result,Value, json};
+use serde_json::{json};
+use std::io::Write;
+use std::fs::File;
 
 #[derive(Deserialize,Serialize)]
-struct val1{
+struct Val1{
     name:String,
     count:Vec<u32>
+}
+
+//this fucntion takes a user and data and makes a json file of user name and puts the data inside of it
+fn writeit(json_str : &str, usr : &str) -> std::io::Result<()>{
+    let mut user = String::from(usr);
+    user.push_str(".json");
+    
+    let mut fle = File::create(user)?;
+    fle.write_all(json_str.as_bytes())?;
+    Ok(())
 }
 
 fn main() {
@@ -22,7 +34,7 @@ fn main() {
 
     //as here type is val1 not value we can be more through in how the json file must be structured
     //and what values must be in it.
-    let v:val1 = match serde_json::from_str(string){
+    let v:Val1 = match serde_json::from_str(string){
         Ok(v) => {println!("yes");v}
         Err(e) => {panic!("Hell Nah!! {e}");}
     };
@@ -41,11 +53,19 @@ fn main() {
     // new find what we have seen code before are not json but a type made so we can use json
     // easily. next we use to_string this turns normal struct into actual json string
 
-    let string = val1 {
+    let string = Val1 {
         name : "freya".to_owned(),
         count: vec!(17),
         };
 
     let j = serde_json::to_string(&string).unwrap();
     println!{"{}",j};
+    //we create a user name for now to make a file about.
+    let usr:&str = "abhinav";
+
+    //check for the result.
+    match writeit(&j,&usr){
+        Ok(()) =>{println!("success");}
+        Err(e) => {println!("Error writing to file: {}", e);}
+    }
 }
