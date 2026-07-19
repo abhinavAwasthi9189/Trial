@@ -2,9 +2,10 @@ mod modules;
 use serde::{Deserialize,Serialize};
 use serde_json::{json};
 use std::io::Write;
-use std::fs::File;
+use std::fs::{self,File};
+use std::path::Path;
 
-#[derive(Debug,Deserialize,Serialize)]
+#[derive(Debug,Clone,Deserialize,Serialize)]
 struct Val1{
     name:String,
     count:Vec<u32>
@@ -20,6 +21,10 @@ fn writeit(json_str : &str, usr : &str) -> std::io::Result<()>{
     Ok(())
 }
 
+//pretty simple we take a json file and we read it. 
+//here dyn means that there is an error but we don't know of what type
+//Box helps make it a pointer so there is no issue with compilwr about its size(as we don't know
+//errors suize)
 fn readit(usr:&str) -> Result<Val1,Box<dyn std::error::Error>>{
     let mut user = String::from(usr);
     user.push_str(".json");
@@ -27,6 +32,30 @@ fn readit(usr:&str) -> Result<Val1,Box<dyn std::error::Error>>{
     let data = std::fs::read_to_string(user)?;
     let json:Val1 = serde_json::from_str(&data)?;
     Ok(json)
+}
+
+//it is a better function same format as last time just we append and read in it
+fn check_and_append_read(json_str:&Val1,usr:&str)-> Result<Vec<Val1>,Box<dyn std::error::Error>>{
+    let mut user = String::from(usr);
+    user.push_str(".json");
+    
+    //path function makes string into a path and helps as get a value.Ok gives the value for
+    //Vec<Val1>>
+    //while ? makes sure error go to the right place.
+    if Path::new(&user).exists(){
+        let data = std::fs::read_to_string(user)?;
+        let json:Val1 = serde_json::from_str(&data)?;
+        let mut datas = vec![json];
+        datas.push(json_str.clone());
+        Ok(datas) 
+    }
+    else{
+        let end = serde_json::to_string(&json_str)?;
+        fs::write(user,&end)?;
+        Ok(vec![json_str.clone()])
+    }
+
+
 }
 
 fn main() {
@@ -80,5 +109,17 @@ fn main() {
 
     let end_value = readit(&usr).expect("well it didn't work. same as ussual");
     
+    println!("values are {:?}",end_value);
+
+    let string = Val1 {
+        name : "Jarvis".to_owned(),
+        count: vec!(2,32,42),
+        };
+    
+    let end_value = match check_and_append_read(&string,"abhinav"){
+        Ok(a) => {a}
+        Err(e) => {panic!("{:?}", e);}
+    };
+
     println!("values are {:?}",end_value);
 }
