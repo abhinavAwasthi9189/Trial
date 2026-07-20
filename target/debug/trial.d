@@ -1,1 +1,0 @@
-/home/jarvis/Documents/gitdemo/trial/target/debug/trial: /home/jarvis/Documents/gitdemo/trial/src/main.rs /home/jarvis/Documents/gitdemo/trial/src/modules/librery.rs /home/jarvis/Documents/gitdemo/trial/src/modules.rs
