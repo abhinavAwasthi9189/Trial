@@ -40,8 +40,8 @@ async fn main()-> Result<(),Box<dyn std::error::Error>> {
 
 struct Repository {
     id: RepositoryId,
-    name: String,               <- what you use as {repo} in step B
-    full_name: Option<String>,  "owner/repo" combined
+    name: String,               // <- what you use as {repo} in step B
+    full_name: Option<String>,  // "owner/repo" combined
     owner: Option<Author>,
     private: bool,
     fork: Option<bool>,
@@ -53,7 +53,7 @@ struct Repository {
 
 struct Page<T> {
     items: Vec<T>,
-    next: Option<Url>,       used for pagination
+    next: Option<Url>,      // used for pagination
     prev: Option<Url>,
     total_count: Option<u64>,
     // ...
@@ -61,15 +61,15 @@ struct Page<T> {
 
 RepoCommit {
     sha: String,
-    commit: Commit {               <- first .commit
+    commit: Commit {              // <- first .commit
         message: String,
-        author: Option<CommitAuthor> {  <- second .author
+        author: Option<CommitAuthor> {  // <- second .author
             name: Option<String>,
             email: Option<String>,
-            date: Option<DateTime<Utc>>,  <- the actual date, wrapped in Option
+            date: Option<DateTime<Utc>>,  // <- the actual date, wrapped in Option
         },
     },
-    author: Option<Author>,         <- DIFFERENT field, this is the GitHub *account*, not the git commit metadata
+    author: Option<Author>,        // <- DIFFERENT field, this is the GitHub *account*, not the git commit metadata
 }
 
-*/
+ * /
