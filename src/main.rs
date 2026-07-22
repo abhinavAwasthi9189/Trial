@@ -1,75 +1,38 @@
-use tokio;
-use octocrab::Octocrab;
-use std::env;
+use std::collections::BTreeMap;//hashmap but it sorts the values on its own.
 
-#[tokio::main]
-async fn main()-> Result<(),Box<dyn std::error::Error>> {
-    //i don't understand it. just that it is needed for heaby tcp calls
-    rustls::crypto::ring::default_provider().install_default().unwrap();
-    //in this we make our clint same as request. it takes your github token and returns the result.
-    let octocrab = Octocrab::builder().personal_token(env::var("GITHUB_TOKEN")?).build()?;
-    let repo = octocrab.repos("abhinavAwasthi9189","IceFinder-ISRO-BAH2026-KalkiCoders").get().await?;
-    //                          ^_username                     ^_RepoName
-    println!("Stars: {:?}", repo.stargazers_count);
-    println!("Description: {:?}", repo.description);
-
-    let repos = octocrab.users("abhinavAwasthi9189").//this part builds the request
-        repos().                                    // it actuatlly fors what we are asking for.
-                                                    // here its the repos
-        send().                                     //sends the request
-        await?;                                     //waits uptil the data is returned.
-    for rep in repos{println!("{}",rep.name);}
-   
-    //same as the last one. it is just that we are taking the list_commit data to be used by us.
-    let repos = octocrab.repos("abhinavAwasthi9189", "IceFinder-ISRO-BAH2026-KalkiCoders").list_commits().send().await?;
-
-    //i read the structure in which these commits are made. i will recommened reading them again to
-    //myself. if was very useful. i will make a comment out of them at the end of program.
-    for rep in repos {
-        if let Some(commiter) = &rep.commit.author{
-            if let Some(date) = commiter.date{
-                println!("{}-{}",rep.commit.message,date);
-            }
-        }
+fn main(){
+    let mut tree:BTreeMap<i32,i32> = BTreeMap::new();
+    //insert is to put a key,value set inside the map
+    tree.insert(2,20);
+    tree.insert(3,30);
+    tree.insert(1,10);
+    tree.insert(4,40);
+    for (key, value) in &tree {
+        println!("{}: {}", key, value);}
+    let mut treet:BTreeMap<String,BTreeMap<String,i32>> = BTreeMap::new();
+    treet.insert("hello".to_string(),BTreeMap::new());
+    treet.get_mut("hello").unwrap().//this gives us a mutable reference to the key. and then we can
+                                    //use it change it or anything else
+        insert("world".to_string(),12);
+    treet.insert("Hello".to_string(),BTreeMap::new());
+    treet.get_mut("Hello").unwrap().insert("World".to_string(),12);
+    for (key, value) in &treet {
+        println!("{}: {:?}", key, value);
     }
-    Ok(())
+    treet.entry("hello".to_string()).//check if the there is a value with this key or not. if yes,reference
+        or_insert_with(BTreeMap::new).//if know we make this value with that key. and return it as refrence.
+        entry("wod".to_string()).
+        and_modify(|v| *v +=1).//if it exists we put it in || and then we transform it
+        or_insert(323);// it gets the value
+        //here or_insert can only have value or expression. it runs whatever function or value be,
+        //so better for simple value/expression while the one _with can have closures
+        //same as BTreeMap.new -> only ran if value doesn't already exists
+
+        //claude says-> allocating a collection, calling a function, formatting a string, cloning something non-trivial) → always use .or_insert_with()
+        //then it must be true
+    treet.entry("hell".to_string()).or_insert_with(BTreeMap::new).entry("wold".to_string()).and_modify(|v| *v +=1).or_insert(33);
+    treet.entry("helloo".to_string()).or_insert_with(BTreeMap::new).entry("world".to_string()).and_modify(|v| *v +=1).or_insert(233);
+    for (key, value) in &treet {
+        println!("{}: {:?}", key, value);
+    }
 }
-
-/*
- 
-
-struct Repository {
-    id: RepositoryId,
-    name: String,               <- what you use as {repo} in step B
-    full_name: Option<String>,  "owner/repo" combined
-    owner: Option<Author>,
-    private: bool,
-    fork: Option<bool>,
-    stargazers_count: Option<u32>,
-    description: Option<String>,
-    // ... many more fields
-}
-
-
-struct Page<T> {
-    items: Vec<T>,
-    next: Option<Url>,       used for pagination
-    prev: Option<Url>,
-    total_count: Option<u64>,
-    // ...
-}
-
-RepoCommit {
-    sha: String,
-    commit: Commit {               <- first .commit
-        message: String,
-        author: Option<CommitAuthor> {  <- second .author
-            name: Option<String>,
-            email: Option<String>,
-            date: Option<DateTime<Utc>>,  <- the actual date, wrapped in Option
-        },
-    },
-    author: Option<Author>,         <- DIFFERENT field, this is the GitHub *account*, not the git commit metadata
-}
-
-*/
