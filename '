@@ -11,7 +11,7 @@ fn main(){
     //ECS-entity component system[for each object you give its properties seprately from a curated set
 
     App::new().add_systems(Startup,add_people)
-        .add_systems(Update,(first,hello,change,hello).chain()).run();
+        .add_systems(Update,(first,hello)).run();
     //adds_system adds systems to our apps schedule(a set of systems,metadata& exectuotors that are
     //run in a certain sequence().
     //we can also add methods like .before/.after(system/function) and it will run it before/after that.
@@ -19,27 +19,16 @@ fn main(){
     
     //Startup only runs once so use it for things like spawning
     //Update clocks in 60fps. so it is used for things like keyboard input,etc.
-    
-    //chain() => it makes all the systems/executors in the () its put on to run one by one. else
-    //they can go parallel.
 }
 
 fn first(){println!("hakuna matata");}
-
+fn second(){println!("hakuna");}
+fn third(){println!("matata");}
 fn add_people(mut commands: Commands) {
     commands.spawn((Person, Name("Miri".to_string())));
     commands.spawn((Person, Name("Siya".to_string())));
     commands.spawn((Person, Name("Shreya".to_string())));
 }
 
-//so it is taking all the query names. that also have person as a component
 fn hello(query:Query<&Name, With<Person>>){
-    for i in query{println!("{}", i.0)};}
-
-fn change(query: Query<&mut Name, With<Person>>){
-    for mut i in query{
-        if "Miri"==i.0{
-            i.0 = "little Miri".to_string();
-        }
-    }
-}
+    for i in query{println!("{i.Name}")}
