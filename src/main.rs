@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
 use bevy::window::PrimaryWindow;
+use bevy::text::TextLayoutInfo;
 
 #[derive(Component)]
 struct Person;
@@ -27,6 +28,9 @@ pub struct TypewriterText {
     pub timer: Timer,
 }
 
+#[derive(Component)]
+pub struct speed(f32,f32);
+
 fn main() {
     //app is our container/ the game object. it is what the game is inside of.
     //ECS-entity component system[for each object you give its properties seprately from a curated set
@@ -39,7 +43,7 @@ fn main() {
         .add_systems(Startup, (add_people, spawn_dialogue_condition))
         .add_systems(
             Update,
-            ((colourchange, sizechange).chain(), hello, update_typewriter),
+            (/*(colourchange, sizechange).chain(),*/ hello, update_typewriter,moveitmoveit),
         )
         .run();
 }
@@ -70,6 +74,19 @@ fn add_people(mut commands: Commands) {
         Transform::from_translation(Vec3::ZERO),
         Person,
     ));
+    commands.spawn((
+            Text2d::new("Miri"),
+            TextFont{
+                font_size:35.0,
+                ..default()
+                },
+                TextColor(Color::Srgba(bevy::color::Srgba::new(1.0,1.0,1.0,1.0))),
+                Anchor::CENTER,
+                Transform::from_xyz(0.0,0.0,0.0),
+                speed(2.0,2.0)
+
+    ));
+                
     commands.spawn((Person, Name("Miri".to_string())));
     commands.spawn((Person, Name("Siya".to_string())));
     commands.spawn((Person, Name("Shraddha".to_string())));
@@ -163,6 +180,21 @@ fn sizechange(
     }
 }
 
+
+
+//here for the first tie we are sending a components to another function. will be very usefull in
+//the future
+fn advance_text_color(color: &mut Color) {
+    match color {
+        c if *c == Color::srgba(1.0, 1.0, 0.0, 1.0) => *c = Color::srgba(0.0, 1.0, 1.0, 1.0),
+        c if *c == Color::srgba(0.0, 1.0, 1.0, 1.0) => *c = Color::srgba(1.0, 0.0, 1.0, 1.0),
+        c if *c == Color::srgba(1.0, 0.0, 1.0, 1.0) => *c = Color::srgba(1.0, 1.0, 0.0, 1.0),
+        c if *c == Color::srgba(1.0, 1.0, 1.0, 1.0) => *c = Color::srgba(1.0, 1.0, 0.0, 1.0),
+        _ => {} 
+    }
+}
+
+
 fn spawn_dialogue_condition(mut commands: Commands, windowq: Query<&Window, With<PrimaryWindow>>) {
     let messageme = true; // we will add some kind of condition later. right now. i have no
     // idea.
@@ -222,6 +254,42 @@ fn update_typewriter(
         }
     }
 }
+
+
+// this is like those old microsoft computers
+// //text layout gives us exact dimesnsion of text so we can make it moveritmo ve it
+fn moveitmoveit(windowq: Query<&Window, With<PrimaryWindow>>, mut query : Query<(&mut Transform, &mut speed, &TextLayoutInfo, &mut TextColor), With<Text2d>>){
+    let mut wx = 0.0 ; let mut wy = 0.0;
+    if let Ok(window) = windowq.single() {
+        wx = window.width() / 2.0;
+        wy = window.height() / 2.0;
+    }
+
+    for (mut place,mut spid, layout, mut calar) in query.iter_mut(){
+        let htextw = layout.size.x / 2.0;
+        let htexth = layout.size.y / 2.0;
+        if place.translation.x > (wx-htextw){
+            spid.0 *= -1.0;
+            advance_text_color(&mut calar);
+        }
+        else if place.translation.x < -(wx-htextw){
+            spid.0 *= -1.0;
+            advance_text_color(&mut calar);
+        }
+        if place.translation.y > (wy-htexth){
+            spid.1 *= -1.0;
+            advance_text_color(&mut calar);
+        }
+        else if place.translation.y < -(wy-htexth){
+            spid.1 *= -1.0;
+            advance_text_color(&mut calar);
+        }
+
+        place.translation.x += spid.0;
+        place.translation.y += spid.1;
+    }
+
+} 
 
 fn change(mut query: Query<&mut Name, With<Person>>) {
     for mut i in query {
