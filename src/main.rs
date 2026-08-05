@@ -1,10 +1,14 @@
+use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy::sprite::Anchor;
+use std::cmp;
 use bevy::window::PrimaryWindow;
-use bevy::text::TextLayoutInfo;
 
 #[derive(Component)]
 struct Person;
+
+#[derive(Component)]
+struct End;
 
 #[derive(Component)]
 struct Name(String);
@@ -29,7 +33,7 @@ pub struct TypewriterText {
 }
 
 #[derive(Component)]
-pub struct speed(f32,f32);
+pub struct speed(f32, f32);
 
 fn main() {
     //app is our container/ the game object. it is what the game is inside of.
@@ -37,150 +41,52 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .insert_resource(GT(Timer::from_seconds(1.0, TimerMode::Repeating)))
+        .insert_resource(GT(Timer::from_seconds(1.5, TimerMode::Repeating)))
         .init_resource::<time_click>()
         .init_resource::<sizeupdown>()
-        .add_systems(Startup, (add_people, spawn_dialogue_condition))
-        .add_systems(
-            Update,
-            (/*(colourchange, sizechange).chain(),*/ hello, update_typewriter,moveitmoveit),
-        )
+        .add_systems(Startup, add_people)
+        .add_systems(Update, moveoncom)
         .run();
 }
 
-pub struct NeoPlug;
+fn add_people(mut commands: Commands, window: Query<&Window, With<PrimaryWindow>>) {
+    let (window_width, window_height) = if let Ok(window) = window.single() {
+        (window.width(), window.height())
+    } else {
+        (1280.0, 720.0)
+    };
 
-impl Plugin for NeoPlug {
-    fn build(&self, app: &mut App) {
-        app.add_systems(Startup, add_people);
-        app.add_systems(Update, /*(change, (hello, change).chain())*/ persec);
-    }
-}
-
-fn first() {
-    println!("hakuna matata");
-}
-
-fn add_people(mut commands: Commands) {
+    let topleftx = -window_width / 2.0;
+    let toplefty = window_height / 2.0 ;
     commands.spawn(Camera2d);
     commands.spawn((
-        Text2d::new("Abhinav"),
+        Text2d::new("Miri"),
         TextFont {
-            font_size: 12.0,
-            font: default(),
+            font_size: 30.0,
             ..default()
         },
-        TextColor(Color::Srgba(bevy::color::Srgba::new(1.0, 1.0, 0.0, 1.0))),
-        Transform::from_translation(Vec3::ZERO),
-        Person,
+        TextColor(Color::Srgba(bevy::color::Srgba::new(1.0, 1.0, 1.0, 1.0))),
+        Anchor::CENTER,
+        Transform::from_xyz(0.0, 0.0, 0.0),
     ));
     commands.spawn((
-            Text2d::new("Miri"),
-            TextFont{
-                font_size:35.0,
-                ..default()
-                },
-                TextColor(Color::Srgba(bevy::color::Srgba::new(1.0,1.0,1.0,1.0))),
-                Anchor::CENTER,
-                Transform::from_xyz(0.0,0.0,0.0),
-                speed(2.0,2.0)
-
+        Text2d::new("Escape..."),
+        TextFont {
+            font_size: 20.0,
+            ..default()
+        },
+        TextColor(Color::Srgba(bevy::color::Srgba::new(1.0, 1.0, 1.0, 0.0))),
+        Anchor::CENTER,
+        Transform::from_xyz(topleftx+30.0,toplefty-20.0, 0.0),
+        End
     ));
-                
+
     commands.spawn((Person, Name("Miri".to_string())));
     commands.spawn((Person, Name("Siya".to_string())));
     commands.spawn((Person, Name("Shraddha".to_string())));
 }
 
 //so it is taking all the query names. that also have person as a component
-fn hello(time: Res<Time>, mut gt: ResMut<GT>, query: Query<&Name, With<Person>>) {
-    if gt.0.just_finished() {
-        for i in query {
-            println!("{}", i.0)
-        }
-    }
-}
-
-fn persec(time: Res<Time>, mut gt: ResMut<GT>, mut click: ResMut<time_click>) {
-    if gt.0.just_finished() {
-        click.0 = Some(time.elapsed_secs());
-        println!("{}", (click.0).unwrap());
-    }
-}
-
-//it changes the colour of the text2d every second from red->blue->yellow and loop
-fn colourchange(
-    time: Res<Time>,
-    mut gt: ResMut<GT>,
-    mut query: Query<&mut TextColor, With<Text2d>>,
-) {
-    gt.0.tick(time.delta());
-    if gt.0.just_finished() {
-        for mut i in query {
-            //again here query is just referencing
-            match *i {
-                TextColor(c) if c == Color::srgba(1.0, 1.0, 0.0, 1.0) => {
-                    i.0 = Color::srgba(0.0, 1.0, 1.0, 1.0);
-                }
-                TextColor(c) if c == Color::srgba(0.0, 1.0, 1.0, 1.0) => {
-                    i.0 = Color::srgba(1.0, 0.0, 1.0, 1.0);
-                }
-                TextColor(c) if c == Color::srgba(1.0, 0.0, 1.0, 1.0) => {
-                    i.0 = Color::srgba(1.0, 1.0, 0.0, 1.0);
-                }
-
-                _ => {}
-            }
-        }
-    }
-}
-
-fn sizechange(
-    time: Res<Time>,
-    mut sud: ResMut<sizeupdown>,
-    mut query: Query<(&mut TextFont, &Text2d)>,
-) {
-    //just know that query is simply as WELL SUD is just smart pointer. we need to choose which
-    //value to be shown. that being sud.0
-    match sud.0 {
-        None => {
-            sud.0 = Some('+');
-
-            for (mut text_font, text) in query.iter_mut() {
-                if text.0 != "Abhinav" {
-                    continue;
-                }
-                text_font.font_size += time.delta_secs();
-            }
-        }
-        Some(a) => {
-            if a == '+' {
-                for (mut text_font, text) in query.iter_mut() {
-                    if text.0 != "Abhinav" {
-                        continue;
-                    }
-
-                    text_font.font_size += (time.delta_secs()) * 100.0;
-                    if text_font.font_size > 310.0 {
-                        sud.0 = Some('-');
-                    }
-                }
-            } else {
-                for (mut text_font, text) in query.iter_mut() {
-                    if text.0 != "Abhinav" {
-                        continue;
-                    }
-                    text_font.font_size -= (time.delta_secs()) * 100.0;
-                    if text_font.font_size < 12.0 {
-                        sud.0 = Some('+');
-                    }
-                }
-            }
-        }
-    }
-}
-
-
 
 //here for the first tie we are sending a components to another function. will be very usefull in
 //the future
@@ -190,106 +96,53 @@ fn advance_text_color(color: &mut Color) {
         c if *c == Color::srgba(0.0, 1.0, 1.0, 1.0) => *c = Color::srgba(1.0, 0.0, 1.0, 1.0),
         c if *c == Color::srgba(1.0, 0.0, 1.0, 1.0) => *c = Color::srgba(1.0, 1.0, 0.0, 1.0),
         c if *c == Color::srgba(1.0, 1.0, 1.0, 1.0) => *c = Color::srgba(1.0, 1.0, 0.0, 1.0),
-        _ => {} 
+        _ => {}
     }
 }
 
-
-fn spawn_dialogue_condition(mut commands: Commands, windowq: Query<&Window, With<PrimaryWindow>>) {
-    let messageme = true; // we will add some kind of condition later. right now. i have no
-    // idea.
-
-    if messageme {
-        //get the window the primary one.
-        if let Ok(window) = windowq.single() {
-            // unlike pygame bevy measures distance taking the centre of window as the 0,0
-            let x = -(window.width() / 2.0) + 20.0;
-            let y = -(window.height() / 2.0) + 30.0;
-            commands.spawn((
-                Text2d::new(""),
-                TextFont {
-                    font_size: 24.0,
-                    ..default()
-                },
-                //this makes so that the part of our object(here text) that is pinned at that
-                //coordinate transform is the BottomLeft one.
-                Anchor::BOTTOM_LEFT,
-                // place the object in terms of xyz.
-                Transform::from_xyz(x, y, 1.0),
-                TypewriterText {
-                    full_text: "Hello Player, how are you!?!".to_string(),
-                    curindex: 0, //this tells how many of the index be placed inside of Text2d.
-                    timer: Timer::from_seconds(0.4, TimerMode::Repeating),
-                },
-            ));
-        }
-    }
-}
-
-fn update_typewriter(
+//simply this takes the values and move it with command and even escape game same as undertale
+fn moveoncom(
+    keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut TypewriterText, &mut Text2d)>,
+    mut gt : ResMut<GT>,
+    mut exit: MessageWriter<AppExit>,
+    mut query: Query<(&mut Transform, &mut TextColor), (With<Text2d>, Without<End>)>,
+    mut end: Query<&mut TextColor,With<End>>,
 ) {
-    for (entity, mut typewriter, mut text) in query.iter_mut() {
-        typewriter.timer.tick(time.delta());
-        //every 0.3 seconds.
-        if typewriter.timer.just_finished() {
-            if typewriter.curindex < typewriter.full_text.len() {
-                typewriter.curindex += 1;
+    if keys.pressed(KeyCode::Escape) {
+        gt.0.tick(time.delta());
+        
+    }
+    else {
+        let gtnewval = ( gt.0.elapsed_secs()- time.delta_secs()).max(0.0);
+        gt.0.set_elapsed(std::time::Duration::from_secs_f32(gtnewval));
+    }
 
-                // Take a substring from index 0 up to our current position, collect and put them
-                // inside of the textify
-                let textify: String = typewriter
-                    .full_text
-                    .chars()
-                    .take(typewriter.curindex)
-                    .collect();
+    for mut i in end{
+        *i = TextColor(Color::srgba(1.0,1.0,1.0,gt.0.elapsed_secs().min(1.0)));
+        if gt.0.just_finished(){
+            exit.write(AppExit::Success);
+        }
+    }
 
-                text.0 = textify;
-            } else {
-                // Once the full sentence is written out, despawn the entity completely
-                commands.entity(entity).despawn();
-            }
+    for (mut place, mut calar) in query.iter_mut() {
+        if keys.pressed(KeyCode::KeyW) {
+            place.translation.y += 10.0;
+        }
+        if keys.pressed(KeyCode::KeyD) {
+            place.translation.x += 10.0;
+        }
+        if keys.pressed(KeyCode::KeyS) {
+            place.translation.y -= 10.0;
+        }
+        if keys.pressed(KeyCode::KeyA) {
+            place.translation.x -= 10.0;
+        }
+        if keys.just_pressed(KeyCode::Space) {
+            advance_text_color(&mut calar.0);
         }
     }
 }
-
-
-// this is like those old microsoft computers
-// //text layout gives us exact dimesnsion of text so we can make it moveritmo ve it
-fn moveitmoveit(windowq: Query<&Window, With<PrimaryWindow>>, mut query : Query<(&mut Transform, &mut speed, &TextLayoutInfo, &mut TextColor), With<Text2d>>){
-    let mut wx = 0.0 ; let mut wy = 0.0;
-    if let Ok(window) = windowq.single() {
-        wx = window.width() / 2.0;
-        wy = window.height() / 2.0;
-    }
-
-    for (mut place,mut spid, layout, mut calar) in query.iter_mut(){
-        let htextw = layout.size.x / 2.0;
-        let htexth = layout.size.y / 2.0;
-        if place.translation.x > (wx-htextw){
-            spid.0 *= -1.0;
-            advance_text_color(&mut calar);
-        }
-        else if place.translation.x < -(wx-htextw){
-            spid.0 *= -1.0;
-            advance_text_color(&mut calar);
-        }
-        if place.translation.y > (wy-htexth){
-            spid.1 *= -1.0;
-            advance_text_color(&mut calar);
-        }
-        else if place.translation.y < -(wy-htexth){
-            spid.1 *= -1.0;
-            advance_text_color(&mut calar);
-        }
-
-        place.translation.x += spid.0;
-        place.translation.y += spid.1;
-    }
-
-} 
 
 fn change(mut query: Query<&mut Name, With<Person>>) {
     for mut i in query {
